@@ -1,0 +1,4 @@
+program programa1;
+	begin
+	@aux=10;
+end.

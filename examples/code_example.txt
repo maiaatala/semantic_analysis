@@ -1,0 +1,3 @@
+event.preventDefault();
+var file = document.getElementById('codeFile').files[0];
+var reader = new FileReader();
