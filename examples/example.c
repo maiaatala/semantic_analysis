@@ -9,8 +9,10 @@
 Ascii 96 : a
 Ascii 122 : z
 Ascii 65 : A
-Ascii 90 : Z
-*/
+Ascii 90 : Z */
+
+/* asdasd */
+
 int caesar(char letter, int increment, short int caseresult){
     /*function does the caesar shift on the alphabet
     on both the lowercase (1) ir uppercase (0)*/

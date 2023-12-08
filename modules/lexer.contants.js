@@ -1,5 +1,5 @@
 export const END_OF_LINE = [';']; // END OF LINE MARKER IN C
-export const END_OF_WORD = [' ', '\t', '\n', '\r\n', '\r', '\0']; //WHEN IT WILL STOP AGGREGATING CHARACTERS
+export const END_OF_WORD = [' ', '\t', '\n', '\r\n', '\r', '\0', ',']; //WHEN IT WILL STOP AGGREGATING CHARACTERS
 export const MATH_OPERATORS = ['+', '-', '*', '/', '%', '++', '--'];
 export const LOGICAL_OPERATORS = ['==', '!=', '>', '<', '>=', '<=', '&&', '||', '!'];
 export const TYPES = ['int', 'float', 'double', 'char', 'void'];
@@ -28,19 +28,6 @@ export const FORMAT_TYPE_MATCH = [
     type: ['char'],
   },
 ];
-
-/**
- * @typedef {Object} TVariableTracker
- * @property {string} name - The name of the variable.
- * @property {TYPES} type - The type of the variable.
- */
-
-/**
- * @typedef {Object} TFunctionTracker
- * @property {string} name - The name of the variable.
- * @property {TYPES} type - The type of the return of the function
- * @property {TYPES[]} params - The type of the parameters of the function
- */
 
 export const REGEX = {
   ALPHABETIC: /^[a-zA-Z_$]+$/,

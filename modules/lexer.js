@@ -1,4 +1,5 @@
-import { END_OF_LINE, END_OF_WORD, REGEX } from './lexer.contants.js';
+import { displayResults } from '../index.js';
+import { END_OF_LINE, END_OF_WORD, IF_STATE, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
 
 /**
  * @typedef {Object} TVariableTracker
@@ -17,13 +18,34 @@ import { END_OF_LINE, END_OF_WORD, REGEX } from './lexer.contants.js';
  * @typedef {string[]} TImportTracker
  */
 
-function* enumerate(iterable) {
-  let i = 0;
+/**
+ * @param {string} lineText - a line content
+ * @returns {Generator<string>}
+ */
+function* iterateLine(iterable) {
+  let i = -1;
+  let currentWord = '';
 
-  for (const x of iterable) {
-    yield [i, x];
+  for (const character of iterable) {
     i++;
+    if (END_OF_LINE.includes(character) || END_OF_WORD.includes(character)) {
+      if (currentWord === '') continue; //wont return empty words
+      yield currentWord;
+      currentWord = '';
+    }
+
+    if (character === '/' && (iterable[i + 1] === '/' || iterable[i + 1] === '*')) {
+      if (currentWord !== '') {
+        yield currentWord; // return if there's something before the comment
+      }
+      // line is a comment, return it all
+      yield iterable.slice(i);
+      break;
+    }
+    currentWord = currentWord + character;
   }
+
+  yield currentWord;
 }
 
 /**
@@ -36,7 +58,7 @@ function* enumerate(iterable) {
  * @param {string} fileContent - a file content
  * @returns {Generator<TGeneratorReturn>}
  */
-function* iterateLines(fileContent) {
+function* iterateFile(fileContent) {
   const allLines = fileContent.split('\n');
 
   let i = 0;
@@ -51,7 +73,7 @@ export function analyzeSemantics(fileContent) {
    * when saved to a const, generators will save their internal state
    * as long as we use the same `lineGenerator` we will always get the next line
    */
-  const lineGenerator = iterateLines(fileContent);
+  const lineGenerator = iterateFile(fileContent);
 
   /** @type {TVariableTracker[]} */
   const globalVariables = [];
@@ -60,13 +82,58 @@ export function analyzeSemantics(fileContent) {
   /** @type {TImportTracker[]} */
   const declaredImports = [];
 
-  const { lineText, lineNumber } = lineGenerator.next().value;
-  console.log(lineNumber, lineText);
-
   for (const { lineText, lineNumber } of lineGenerator) {
-    console.log(lineNumber, lineText);
-    break;
+    const firstWord = iterateLine(lineText).next().value;
     //use this to iterate over each line
+    if (firstWord === '#include') {
+      displayResults({ lineNumber, lineText, result: 'import', isError: false });
+      //handleImportDeclaration({ allImports: declaredImports });
+    }
+    if (firstWord === '#define') {
+      displayResults({ lineNumber, lineText, result: 'global const', isError: false });
+      //handleConstDeclaration({ allImports: declaredImports });
+    }
+    if ([...TYPES, ...TYPE_VARIATIONS].includes(firstWord)) {
+      displayResults({ lineNumber, lineText, result: 'function/declaration', isError: false });
+      //handleConstDeclaration({ allImports: declaredImports });
+    }
+
+    if (firstWord?.startsWith('//') || firstWord?.startsWith('/*')) {
+      handleComments({ generator: lineGenerator, currLine: lineText, currLineNum: lineNumber });
+    }
+  }
+}
+
+function handleComments({ generator, currLine, currLineNum }) {
+  if (currLine.startsWith('//')) {
+    // line is a comment, ignore
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid comment', isError: false });
+    return;
+  }
+
+  if (currLine.startsWith('/*')) {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid comment', isError: false });
+    if (currLine.endsWith('*/')) {
+      // line is a comment, ignore
+      return;
+    }
+    //find where the comment block ends
+    while (true) {
+      const { lineText, lineNumber } = generator.next().value;
+      console.log(lineText);
+      if (lineText?.includes('*/')) {
+        //found the end of the comment
+        //verify if the line ends with the end of the comment
+        if (lineText?.replace(/\s/g, '')?.endsWith('*/')) {
+          displayResults({ lineNumber, lineText, result: 'valid end of comment block', isError: false });
+          return;
+        }
+
+        displayResults({ lineNumber, lineText, result: "ERROR: there's text after the end of the coment block", isError: true });
+        return;
+      }
+      displayResults({ lineNumber, lineText, result: 'line is part of a comment block', isError: false });
+    }
   }
 }
 

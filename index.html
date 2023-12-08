@@ -4,17 +4,25 @@
     <base href="." />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Atala's Java Script Lexer</title>
+    <title>Semantic Analyzer</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
       integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
       crossorigin="anonymous"
     />
+    <style>
+      .lineError {
+        border: 1px solid red;
+        td {
+          background: rgba(146, 38, 38, 0.514);
+        }
+      }
+    </style>
   </head>
   <body>
     <div class="container-md d-flex flex-column mb-3 position-relative">
-      <h1>Javascript Lexer</h1>
+      <h1>Semantic Analyzer</h1>
 
       <form id="fileForm">
         <div class="input-group">
@@ -26,11 +34,9 @@
         <table id="resultsTable" class="table table-striped">
           <thead className="bg-light sticky-top top-0">
             <tr>
-              <th scope="col">Lexema</th>
-              <th scope="col">Token</th>
-              <th scope="col">Coluna Inicial</th>
-              <th scope="col">Coluna Final</th>
-              <th scope="col">Linha</th>
+              <th scope="col">Linha n°</th>
+              <th scope="col">Texto</th>
+              <th scope="col">Resultado</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>

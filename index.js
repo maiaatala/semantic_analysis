@@ -2,7 +2,12 @@ import { analyzeSemantics } from './modules/lexer.js';
 
 document.getElementById('fileForm').addEventListener('submit', function (event) {
   event.preventDefault();
+  // Clear any existing results
+  var tbody = document.getElementById('resultsBody');
+  tbody.innerHTML = '';
+  // reads file
   var file = document.getElementById('codeFile').files[0];
+  if (!file) return;
   var reader = new FileReader();
   reader.onload = function (event) {
     var contents = event.target.result;
@@ -16,18 +21,16 @@ document.getElementById('fileForm').addEventListener('submit', function (event) 
 //   displayResults(tokens);
 // }
 
-// function displayResults(tokens) {
-//   var tbody = document.getElementById('resultsBody');
-//   tbody.innerHTML = ''; // Clear any existing results
-//   tokens.forEach(function (token) {
-//     var row = document.createElement('tr');
-//     row.innerHTML = `
-//           <td>${token.text}</td>
-//           <td>${token.type}</td>
-//           <td>${token.loc.startColumn}</td>
-//           <td>${token.loc.endColumn}</td>
-//           <td>${token.loc.line}</td>
-//       `;
-//     tbody.appendChild(row);
-//   });
-// }
+export function displayResults({ lineNumber, lineText, result, isError }) {
+  var tbody = document.getElementById('resultsBody');
+  var row = document.createElement('tr');
+  if (isError) {
+    row.classList.add('lineError');
+  }
+  row.innerHTML = `
+        <td>${lineNumber}</td>
+        <td>${lineText}</td>
+        <td>${result}</td>
+    `;
+  tbody.appendChild(row);
+}
