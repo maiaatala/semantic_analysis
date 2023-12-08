@@ -27,6 +27,8 @@ export function displayResults({ lineNumber, lineText, result, isError }) {
   if (isError) {
     row.classList.add('lineError');
   }
+  //!fix for < and > not showing
+  lineText = lineText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   row.innerHTML = `
         <td>${lineNumber}</td>
         <td>${lineText}</td>

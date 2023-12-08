@@ -1,5 +1,6 @@
 import { displayResults } from '../index.js';
 import { END_OF_LINE, END_OF_WORD, IF_STATE, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
+import { handleComments, handleImportDeclaration } from './lexer.functions.js';
 
 /**
  * @typedef {Object} TVariableTracker
@@ -22,7 +23,7 @@ import { END_OF_LINE, END_OF_WORD, IF_STATE, REGEX, TYPES, TYPE_VARIATIONS } fro
  * @param {string} lineText - a line content
  * @returns {Generator<string>}
  */
-function* iterateLine(iterable) {
+export function* iterateLine(iterable) {
   let i = -1;
   let currentWord = '';
 
@@ -86,8 +87,10 @@ export function analyzeSemantics(fileContent) {
     const firstWord = iterateLine(lineText).next().value;
     //use this to iterate over each line
     if (firstWord === '#include') {
-      displayResults({ lineNumber, lineText, result: 'import', isError: false });
-      //handleImportDeclaration({ allImports: declaredImports });
+      const maybeNewImport = handleImportDeclaration({ allImports: declaredImports, currLine: lineText, currLineNum: lineNumber });
+      if (maybeNewImport) {
+        declaredImports.push(maybeNewImport);
+      }
     }
     if (firstWord === '#define') {
       displayResults({ lineNumber, lineText, result: 'global const', isError: false });
@@ -102,48 +105,6 @@ export function analyzeSemantics(fileContent) {
       handleComments({ generator: lineGenerator, currLine: lineText, currLineNum: lineNumber });
     }
   }
-}
-
-function handleComments({ generator, currLine, currLineNum }) {
-  if (currLine.startsWith('//')) {
-    // line is a comment, ignore
-    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid comment', isError: false });
-    return;
-  }
-
-  if (currLine.startsWith('/*')) {
-    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid comment', isError: false });
-    if (currLine.endsWith('*/')) {
-      // line is a comment, ignore
-      return;
-    }
-    //find where the comment block ends
-    while (true) {
-      const { lineText, lineNumber } = generator.next().value;
-      console.log(lineText);
-      if (lineText?.includes('*/')) {
-        //found the end of the comment
-        //verify if the line ends with the end of the comment
-        if (lineText?.replace(/\s/g, '')?.endsWith('*/')) {
-          displayResults({ lineNumber, lineText, result: 'valid end of comment block', isError: false });
-          return;
-        }
-
-        displayResults({ lineNumber, lineText, result: "ERROR: there's text after the end of the coment block", isError: true });
-        return;
-      }
-      displayResults({ lineNumber, lineText, result: 'line is part of a comment block', isError: false });
-    }
-  }
-}
-
-/**
- * @param {TImportTracker} allImports - already declared imports
- * @returns string | null
- */
-function handleImportDeclaration({ allImports }) {
-  //analyse if the import was already declared
-  //return the string if it was not declared
 }
 
 /**
