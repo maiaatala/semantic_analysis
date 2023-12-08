@@ -96,6 +96,6 @@ export function handleConstDeclaration({ allVariables, currLine, currLineNum }) 
   displayResults({ lineNumber: currLineNum, lineText, result: 'valid import', isError: false });
   return {
     name: breakConstLine[1],
-    type: Number.isNaN(maybeNumber) ? (Number.isInteger(maybeNumber) ? 'int' : 'float') : 'char',
+    type: Number.isNaN(maybeNumber) ? 'char' : Number.isInteger(maybeNumber) ? 'int' : 'float',
   };
 }
