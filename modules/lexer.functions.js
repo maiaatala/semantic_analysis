@@ -1,5 +1,5 @@
 import { displayResults } from '../index.js';
-import { removeWhiteSpace, separateStringByCharacters } from './utils.js';
+import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
 
 /**
  * @param generator {Object} Generator<TGeneratorReturn>
@@ -65,4 +65,37 @@ export function handleImportDeclaration({ allImports, currLine, currLineNum }) {
 
   displayResults({ lineNumber: currLineNum, lineText, result: 'valid import', isError: false });
   return breakImportLine[0];
+}
+
+/**
+ * @param {TVariableTracker} allVariables - already declared variables
+ * @param {string} currLine - current line
+ * @param {number} currLineNum - current line number
+ * @returns TVariableTracker | null
+ */
+export function handleConstDeclaration({ allVariables, currLine, currLineNum }) {
+  let lineText = currLine;
+  const breakConstLine = splitOnWhitespace(currLine)?.filter(Boolean);
+
+  if (!breakConstLine?.length) {
+    displayResults({ lineNumber: currLineNum, lineText, result: 'ERROR: no declaration', isError: true });
+    return null;
+  }
+  if (breakConstLine.length !== 3) {
+    displayResults({ lineNumber: currLineNum, lineText, result: 'ERROR: wrong const syntax', isError: true });
+    return null;
+  }
+  //analyse if the const was already declared
+  if (allVariables?.includes(breakConstLine[1])) {
+    displayResults({ lineNumber: currLineNum, lineText, result: 'ERROR: const already declared', isError: true });
+    return null;
+  }
+
+  const maybeNumber = parseFloat(breakConstLine[2]);
+
+  displayResults({ lineNumber: currLineNum, lineText, result: 'valid import', isError: false });
+  return {
+    name: breakConstLine[1],
+    type: Number.isNaN(maybeNumber) ? (Number.isInteger(maybeNumber) ? 'int' : 'float') : 'char',
+  };
 }

@@ -1,6 +1,6 @@
 import { displayResults } from '../index.js';
 import { END_OF_LINE, END_OF_WORD, IF_STATE, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
-import { handleComments, handleImportDeclaration } from './lexer.functions.js';
+import { handleComments, handleConstDeclaration, handleImportDeclaration } from './lexer.functions.js';
 
 /**
  * @typedef {Object} TVariableTracker
@@ -93,8 +93,10 @@ export function analyzeSemantics(fileContent) {
       }
     }
     if (firstWord === '#define') {
-      displayResults({ lineNumber, lineText, result: 'global const', isError: false });
-      //handleConstDeclaration({ allImports: declaredImports });
+      const maybeNewConst = handleConstDeclaration({ allVariables: globalVariables, currLine: lineText, currLineNum: lineNumber });
+      if (maybeNewConst) {
+        globalVariables.push(maybeNewConst);
+      }
     }
     if ([...TYPES, ...TYPE_VARIATIONS].includes(firstWord)) {
       displayResults({ lineNumber, lineText, result: 'function/declaration', isError: false });
@@ -105,15 +107,9 @@ export function analyzeSemantics(fileContent) {
       handleComments({ generator: lineGenerator, currLine: lineText, currLineNum: lineNumber });
     }
   }
-}
 
-/**
- * @param {TVariableTracker[]} allVariables - scope + global variables
- * @returns TVariableTracker
- */
-function handleConstDeclaration({ allVariables }) {
-  //analyse if the const was already declared
-  //return TVariableTracker if it was not declared
+  console.log('globalVariables', globalVariables);
+  console.log('declaredImports', declaredImports);
 }
 
 /**
