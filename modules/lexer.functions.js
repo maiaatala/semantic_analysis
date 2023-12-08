@@ -1,5 +1,36 @@
 import { displayResults } from '../index.js';
+import { TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
 import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
+
+/**
+ * @param {string} lineText - a line content
+ * @returns {Generator<string>}
+ */
+export function* iterateLine(iterable) {
+  let i = -1;
+  let currentWord = '';
+
+  for (const character of iterable) {
+    i++;
+    if (END_OF_LINE.includes(character) || END_OF_WORD.includes(character)) {
+      if (currentWord === '') continue; //wont return empty words
+      yield currentWord;
+      currentWord = '';
+    }
+
+    if (character === '/' && (iterable[i + 1] === '/' || iterable[i + 1] === '*')) {
+      if (currentWord !== '') {
+        yield currentWord; // return if there's something before the comment
+      }
+      // line is a comment, return it all
+      yield iterable.slice(i);
+      break;
+    }
+    currentWord = currentWord + character;
+  }
+
+  yield currentWord;
+}
 
 /**
  * @param generator {Object} Generator<TGeneratorReturn>
@@ -98,4 +129,115 @@ export function handleConstDeclaration({ allVariables, currLine, currLineNum }) 
     name: breakConstLine[1],
     type: Number.isNaN(maybeNumber) ? 'char' : Number.isInteger(maybeNumber) ? 'int' : 'float',
   };
+}
+
+/**
+ * @param {Object} Generator<TGeneratorReturn>
+ * @param {TVariableTracker[]} globalVariables -  global variables
+ * @param {TFunctionTracker[]} alreadyDeclaredFunctions - all functions
+ * @returns TFunctionTracker
+ */
+function handleFunctionDeclaration({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+
+  let returnType = '';
+  let functionName = '';
+  let params = [];
+
+  //first line is the function declaration
+  for (const word of iterateLine(currLine)) {
+    if (TYPE_VARIATIONS.includes(word)) {
+      continue;
+    }
+    if (!returnType && TYPES.includes(word)) {
+      returnType = word;
+      continue;
+    }
+
+    if (word === '(') {
+      bracketStack.push('(');
+      continue;
+    }
+
+    if (word === ')') {
+      //function param block did not start. too early end )
+      bracketStack.pop();
+      continue;
+    }
+
+    if (bracketStack.length === 1) {
+      //we are in the params declaration
+      if (word === ',') {
+        continue;
+      }
+      if (word === '{') {
+        //function declaration ended early ERROR
+        break;
+      }
+      if (word === ')') {
+        //end of params declaration
+        bracketStack.pop();
+        continue;
+      }
+      //verify if valid `ALPHABETIC_THEN_ALPHANUMERIC` regex
+      params.push(word);
+      continue;
+    }
+
+    if (!functionName) {
+      //verify if valid `ALPHABETIC_THEN_ALPHANUMERIC` regex
+      functionName = word;
+      continue;
+    }
+  }
+}
+
+function handleIfBlock({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handleSwitchBlock({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handleForLoop({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handleWhileLoop({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handleDoWhileLoop({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handlePrintf({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handleScanf({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
+}
+
+function handleConstUsage({ generator, allVariables, currLine, currLineNum }) {
+  const bracketStack = [];
+  /** @type {TVariableTracker[]} */
+  const scopeVariables = [];
 }

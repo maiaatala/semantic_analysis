@@ -1,6 +1,6 @@
 import { displayResults } from '../index.js';
 import { END_OF_LINE, END_OF_WORD, IF_STATE, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
-import { handleComments, handleConstDeclaration, handleImportDeclaration } from './lexer.functions.js';
+import { handleComments, handleConstDeclaration, handleImportDeclaration, iterateLine } from './lexer.functions.js';
 
 /**
  * @typedef {Object} TVariableTracker
@@ -18,36 +18,6 @@ import { handleComments, handleConstDeclaration, handleImportDeclaration } from 
 /**
  * @typedef {string[]} TImportTracker
  */
-
-/**
- * @param {string} lineText - a line content
- * @returns {Generator<string>}
- */
-export function* iterateLine(iterable) {
-  let i = -1;
-  let currentWord = '';
-
-  for (const character of iterable) {
-    i++;
-    if (END_OF_LINE.includes(character) || END_OF_WORD.includes(character)) {
-      if (currentWord === '') continue; //wont return empty words
-      yield currentWord;
-      currentWord = '';
-    }
-
-    if (character === '/' && (iterable[i + 1] === '/' || iterable[i + 1] === '*')) {
-      if (currentWord !== '') {
-        yield currentWord; // return if there's something before the comment
-      }
-      // line is a comment, return it all
-      yield iterable.slice(i);
-      break;
-    }
-    currentWord = currentWord + character;
-  }
-
-  yield currentWord;
-}
 
 /**
  * @typedef {Object} TGeneratorReturn
@@ -118,18 +88,4 @@ export function analyzeSemantics(fileContent) {
   console.log('globalVariables', globalVariables);
   console.log('declaredImports', declaredImports);
   console.log('declaredFunctions', declaredFunctions);
-}
-
-/**
- * @param {Object} Generator<TGeneratorReturn>
- * @param {TVariableTracker[]} globalVariables -  global variables
- * @param {TFunctionTracker[]} alreadyDeclaredFunctions - all functions
- * @returns TFunctionTracker
- */
-function handleFunctionDeclaration({ generator, allVariables }) {
-  //analyse if the function has a name already declared
-  const bracketStack = [];
-
-  //iterates over the function until bracket stack is empty
-  //return TFunctionTracker if it was not declared
 }
