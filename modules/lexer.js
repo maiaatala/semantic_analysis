@@ -85,27 +85,34 @@ export function analyzeSemantics(fileContent) {
 
   for (const { lineText, lineNumber } of lineGenerator) {
     const firstWord = iterateLine(lineText).next().value;
+    if (!lineText || !firstWord) continue;
     //use this to iterate over each line
     if (firstWord === '#include') {
       const maybeNewImport = handleImportDeclaration({ allImports: declaredImports, currLine: lineText, currLineNum: lineNumber });
       if (maybeNewImport) {
         declaredImports.push(maybeNewImport);
       }
+      continue;
     }
     if (firstWord === '#define') {
       const maybeNewConst = handleConstDeclaration({ allVariables: globalVariables, currLine: lineText, currLineNum: lineNumber });
       if (maybeNewConst) {
         globalVariables.push(maybeNewConst);
       }
+      continue;
     }
     if ([...TYPES, ...TYPE_VARIATIONS].includes(firstWord)) {
       displayResults({ lineNumber, lineText, result: 'function/declaration', isError: false });
       //handleConstDeclaration({ allImports: declaredImports });
+      continue;
     }
 
     if (firstWord?.startsWith('//') || firstWord?.startsWith('/*')) {
       handleComments({ generator: lineGenerator, currLine: lineText, currLineNum: lineNumber });
+      continue;
     }
+
+    displayResults({ lineNumber, lineText, result: 'code outside a function block', isError: true });
   }
 
   console.log('globalVariables', globalVariables);
