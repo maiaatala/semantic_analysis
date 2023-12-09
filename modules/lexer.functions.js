@@ -1,15 +1,5 @@
 import { displayResults } from '../index.js';
-import {
-  PONCTUATIONS,
-  END_OF_LINE,
-  END_OF_WORD,
-  LOGICAL_OPERATORS,
-  MATH_OPERATORS,
-  REGEX,
-  TYPES,
-  TYPE_VARIATIONS,
-  INVALID_VARIABLE_TOKENS,
-} from './lexer.contants.js';
+import { PONCTUATIONS, END_OF_LINE, END_OF_WORD, LOGICAL_OPERATORS, MATH_OPERATORS, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
 import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
 
 /**
@@ -164,7 +154,6 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
   //!FUNCTION SCOPE VARIABLE SHOULD HAVE THE VARIBLES DECLARED IN THE PARAMETERS
   let scopeVariables = [];
   let hasAtLeastOneParenthesis = false;
-  let correctReturnUsage = false;
   let hasDeclaredReturn = false;
   let functionTrackerReturn = {
     returnType: '',
@@ -320,10 +309,6 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     }
 
     if (firstWord === 'return') {
-      if (hasDeclaredReturn) {
-        displayResults({ lineNumber, lineText, result: 'ERROR: Function already has a return statement', isError: true });
-        continue;
-      }
       handleReturnDeclaration({
         allVariables: [...scopeVariables, ...globalVariables],
         currLine: lineText,
@@ -620,6 +605,10 @@ function handleReturnDeclaration({ allVariables, currLine, currLineNum, expected
 
   if (correctReturn) {
     displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid return statement', isError: false });
+    return;
+  }
+  if (returnLineIdx === 0 && expectedReturnType === 'void') {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid void return statement', isError: false });
     return;
   }
   displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong return statement syntax', isError: true });

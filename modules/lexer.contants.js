@@ -31,20 +31,8 @@ export const FORMAT_TYPE_MATCH = [
   },
 ];
 
-export const INVALID_VARIABLE_TOKENS = [
-  ...END_OF_LINE,
-  ...END_OF_WORD,
-  ...PONCTUATIONS,
-  ...MATH_OPERATORS,
-  ...LOGICAL_OPERATORS,
-  ...PONCTUATIONS,
-  ...COMMENT,
-  "'",
-  '"',
-];
-
 export const REGEX = {
   ALPHABETIC: /^[a-zA-Z_$]+$/,
   NUMBERIC: /^[0-9]+$/,
-  ALPHABETIC_THEN_ALPHANUMERIC: /^[a-zA-Z_$][a-zA-Z_\$0-9]*/,
+  ALPHABETIC_THEN_ALPHANUMERIC: /^[a-zA-Z_][a-zA-Z0-9_]*$/,
 };
