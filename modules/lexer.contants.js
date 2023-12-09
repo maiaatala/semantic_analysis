@@ -1,6 +1,7 @@
 export const END_OF_LINE = [';']; // END OF LINE MARKER IN C
 export const END_OF_WORD = [' ', '\t', '\n', '\r\n', '\r', '\0']; //WHEN IT WILL STOP AGGREGATING CHARACTERS
 export const PONCTUATIONS = [',', '(', ')', '{', '}'];
+
 export const MATH_OPERATORS = ['=', '+', '-', '*', '/', '%', '++', '--'];
 export const LOGICAL_OPERATORS = ['==', '!=', '>', '<', '>=', '<=', '&&', '||', '!'];
 export const TYPES = ['int', 'float', 'double', 'char', 'void'];
@@ -28,6 +29,18 @@ export const FORMAT_TYPE_MATCH = [
     format: ['%c', '%[^\n]s', '%[^\n]%*c', '%s'],
     type: ['char'],
   },
+];
+
+export const INVALID_VARIABLE_TOKENS = [
+  ...END_OF_LINE,
+  ...END_OF_WORD,
+  ...PONCTUATIONS,
+  ...MATH_OPERATORS,
+  ...LOGICAL_OPERATORS,
+  ...PONCTUATIONS,
+  ...COMMENT,
+  "'",
+  '"',
 ];
 
 export const REGEX = {
