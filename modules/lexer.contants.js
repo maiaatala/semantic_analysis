@@ -1,6 +1,7 @@
 export const END_OF_LINE = [';']; // END OF LINE MARKER IN C
-export const END_OF_WORD = [' ', '\t', '\n', '\r\n', '\r', '\0', ',', '(', ')', '{', '}']; //WHEN IT WILL STOP AGGREGATING CHARACTERS
-export const MATH_OPERATORS = ['+', '-', '*', '/', '%', '++', '--'];
+export const END_OF_WORD = [' ', '\t', '\n', '\r\n', '\r', '\0']; //WHEN IT WILL STOP AGGREGATING CHARACTERS
+export const PONCTUATIONS = [',', '(', ')', '{', '}'];
+export const MATH_OPERATORS = ['=', '+', '-', '*', '/', '%', '++', '--'];
 export const LOGICAL_OPERATORS = ['==', '!=', '>', '<', '>=', '<=', '&&', '||', '!'];
 export const TYPES = ['int', 'float', 'double', 'char', 'void'];
 export const TYPE_VARIATIONS = ['long', 'short', 'unsigned', 'signed '];

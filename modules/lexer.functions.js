@@ -1,5 +1,5 @@
 import { displayResults } from '../index.js';
-import { END_OF_LINE, END_OF_WORD, LOGICAL_OPERATORS, MATH_OPERATORS, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
+import { PONCTUATIONS, END_OF_LINE, END_OF_WORD, LOGICAL_OPERATORS, MATH_OPERATORS, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
 import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
 
 /**
@@ -21,21 +21,24 @@ export function* iterateLine(iterable) {
       break;
     }
 
-    if (
-      END_OF_LINE.includes(character) ||
-      END_OF_WORD.includes(character) ||
-      MATH_OPERATORS.includes(character) ||
-      LOGICAL_OPERATORS.includes(character)
-    ) {
-      if (currentWord === '') continue; //wont return empty words
-      yield currentWord;
+    if (END_OF_LINE.includes(character) || END_OF_WORD.includes(character)) {
+      //wont return empty words
+      if (!['', ' '].includes(currentWord)) yield currentWord; //saving string with blank space error
       currentWord = '';
+      continue;
     }
-    if (END_OF_WORD.includes(character)) continue; //saving string with blank space error
+
+    if ([...MATH_OPERATORS, ...PONCTUATIONS, ...LOGICAL_OPERATORS].includes(character)) {
+      if (currentWord !== '') yield currentWord;
+      yield character;
+      currentWord = '';
+      continue;
+    }
+
     currentWord = currentWord + character;
   }
 
-  yield currentWord;
+  if (!['', ' '].includes(currentWord)) yield currentWord; //saving string with blank space error
 }
 
 /**
@@ -160,6 +163,7 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
 
   //first line is the function declaration
   for (const word of iterateLine(currLine)) {
+    console.log('word', word);
     if (TYPE_VARIATIONS.includes(word)) {
       continue;
     }
@@ -243,23 +247,22 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       continue;
     }
   }
-
-  if (bracketStack[1] !== '{') {
+  console.log('bracketStack', bracketStack);
+  if (bracketStack[0] === '{') {
+    console.log('hi');
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid function declaration', isError: false });
+  } else {
     //something went very wrong in the function declaration
     functionTrackerReturn = null;
     bracketStack = ['{']; //force interation until the end of the function
-  } else {
-    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid function declaration', isError: false });
   }
 
   for (const { lineText, lineNumber } of generator) {
-    console.log('lineText', lineText);
+    // console.log('lineText', lineText);
     if (bracketStack.length === 0) {
       //end of function block
-      break;
-    }
-    if (!lineText) {
-      continue;
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid end of function', isError: false });
+      return functionTrackerReturn;
     }
     const firstWord = iterateLine(lineText).next();
     if (firstWord === '}') {
@@ -320,33 +323,3 @@ function handleReturnDeclaration({ allVariabes, allFunctions, currLine, currLine
     }
   }
 }
-
-// function handleIfBlock({ generator, allVariables, currLine, currLineNum }) {
-//   const bracketStack = [];
-//   /** @type {TVariableTracker[]} */
-//   const scopeVariables = [];
-// }
-
-// function handleSwitchBlock({ generator, allVariables, currLine, currLineNum }) {
-//   const bracketStack = [];
-//   /** @type {TVariableTracker[]} */
-//   const scopeVariables = [];
-// }
-
-// function handleForLoop({ generator, allVariables, currLine, currLineNum }) {
-//   const bracketStack = [];
-//   /** @type {TVariableTracker[]} */
-//   const scopeVariables = [];
-// }
-
-// function handleWhileLoop({ generator, allVariables, currLine, currLineNum }) {
-//   const bracketStack = [];
-//   /** @type {TVariableTracker[]} */
-//   const scopeVariables = [];
-// }
-
-// function handleDoWhileLoop({ generator, allVariables, currLine, currLineNum }) {
-//   const bracketStack = [];
-//   /** @type {TVariableTracker[]} */
-//   const scopeVariables = [];
-// }
