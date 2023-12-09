@@ -56,7 +56,6 @@ export function analyzeSemantics(fileContent) {
   for (const { lineText, lineNumber } of lineGenerator) {
     const firstWord = iterateLine(lineText).next().value;
     if (!lineText || !firstWord) continue;
-    console.log('firstWord', firstWord, firstWord?.length);
     //use this to iterate over each line
     if (firstWord === '#include') {
       const maybeNewImport = handleImportDeclaration({ allImports: declaredImports, currLine: lineText, currLineNum: lineNumber });
@@ -83,7 +82,6 @@ export function analyzeSemantics(fileContent) {
       if (maybeNewFunction) {
         declaredFunctions.push(maybeNewFunction);
       }
-      console.log('generator', lineGenerator);
       continue;
     }
 

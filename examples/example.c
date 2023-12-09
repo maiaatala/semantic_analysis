@@ -19,7 +19,8 @@ void printInput(){
     printf("Enter two numbers: ");
     scanf("%d", &b);
     scanf("%d", &b);
-    printf("The sum is: %d\n", sum(a, b));
+    printf("The sum is: %d %d\n", a,b);
+    printf("number inputed is: %d\n", MAX_SIZE);
     int a = 0;
     b = 5.44;
 }

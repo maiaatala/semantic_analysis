@@ -163,8 +163,6 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
 
   //first line is the function declaration
   for (const word of iterateLine(currLine)) {
-    console.log('word', word);
-
     if (bracketStack.length === 1) {
       //we are in the params declaration
       if (word === ',') {
@@ -286,6 +284,16 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       continue;
     }
 
+    if (firstWord === 'printf') {
+      handlePrintf({
+        allVariables: [...scopeVariables, ...globalVariables],
+        allFunctions: globalFunctions,
+        currLine: lineText,
+        currLineNum: lineNumber,
+      });
+      continue;
+    }
+
     if (firstWord === 'return') {
       //analyze return
       hasDeclaredReturn = true;
@@ -301,53 +309,54 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
  */
 function handleVariableDeclaration({ allVariables, currLine, currLineNum }) {}
 
-function handlePrintf({ allVariables, allFunctions, currLine, currLineNum }) {
-  const bracketStack = [];
-  /** @type {TVariableTracker[]} */
-  const scopeVariables = [];
+function handlePrintf({ allVariables, currLine, currLineNum }) {
+  // Remove as aspas, parênteses e ponto e vírgula para análise
+  const formattedLine = currLine.replace(/["();]/g, '');
 
-  // Verifica se a linha atual contém a chamada à função printf
-  if (currLine.includes('printf')) {
-    // Remove as aspas, parênteses e ponto e vírgula para análise
-    const formattedLine = currLine.replace(/["();]/g, '');
+  console.log('allVariables', allVariables);
 
-    // Separa os argumentos da função printf
-    const args = formattedLine
-      .split(',')
-      .slice(1)
-      .map((arg) => arg.trim());
+  // Separa os argumentos da função printf
+  const args = formattedLine
+    .split(',')
+    .slice(1)
+    .map((arg) => arg.trim());
 
-    // Encontra o formato de string especificado
-    const formatString = currLine.match(/"([^"]*)"/);
-    if (!formatString) {
-      throw new Error(`Erro na linha ${currLineNum}: Formato de string não especificado no printf.`);
-    }
-
-    const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA]/g) || [];
-
-    // Verifica se o número de especificadores de formato corresponde ao número de argumentos
-    if (formatSpecifiers.length !== args.length) {
-      throw new Error(`Erro na linha ${currLineNum}: Número de especificadores de formato não corresponde ao número de argumentos.`);
-    }
-
-    // Verifica cada argumento
-    args.forEach((arg, index) => {
-      const varName = arg.split('.')[0]; // Considera chamadas de propriedades/métodos
-      const variable = allVariables.find((v) => v.name === varName);
-
-      if (!variable) {
-        throw new Error(`Erro na linha ${currLineNum}: Variável ${varName} não definida.`);
-      }
-
-      // Verifica se o tipo da variável corresponde ao especificador de formato
-      // Esta é uma simplificação, pois a correspondência real entre tipos e especificadores é mais complexa
-      const specifier = formatSpecifiers[index];
-      if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
-        throw new Error(`Erro na linha ${currLineNum}: Tipo incorreto para especificador de formato ${specifier}. Esperado int.`);
-      }
-      // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
-    });
+  // Encontra o formato de string especificado
+  const formatString = currLine.match(/"([^"]*)"/);
+  if (!formatString) {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong printf format', isError: true });
+    return;
   }
+
+  const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA]/g) || [];
+
+  // Verifica se o número de especificadores de formato corresponde ao número de argumentos
+  if (formatSpecifiers.length !== args.length) {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: too many or too little arguments', isError: true });
+    return;
+  }
+
+  // Verifica cada argumento
+  for (const [arg, index] of args) {
+    const varName = arg.split('.')[0]; // Considera chamadas de propriedades/métodos
+    const variable = allVariables.find((v) => v.name === varName);
+
+    if (!variable) {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: variable ${varName} is not defined`, isError: true });
+      return;
+    }
+
+    // Verifica se o tipo da variável corresponde ao especificador de formato
+    // Esta é uma simplificação, pois a correspondência real entre tipos e especificadores é mais complexa
+    const specifier = formatSpecifiers[index];
+    if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong type specified for ${varName}', isError: true });
+      return;
+    }
+    // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
+  }
+
+  displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid printf statement', isError: false });
 }
 
 function handleScanf({ generator, allVariables, allFunctions, currLine, currLineNum }) {
