@@ -270,9 +270,13 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       return functionTrackerReturn;
     }
 
+    if (!firstWord) {
+      continue;
+    }
+
     if (firstWord === '}') {
       bracketStack.pop();
-      if (!hasDeclaredReturn && functionTrackerReturn.returnType !== 'void') {
+      if (!hasDeclaredReturn && functionTrackerReturn?.returnType !== 'void') {
         displayResults({ lineNumber, lineText, result: 'ERROR: Function ended without return statement', isError: true });
       } else {
         displayResults({ lineNumber, lineText, result: 'valid end of function', isError: false });
@@ -314,9 +318,21 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
         allVariables: [...scopeVariables, ...globalVariables],
         currLine: lineText,
         currLineNum: lineNumber,
-        expectedReturnType: functionTrackerReturn.returnType,
+        expectedReturnType: functionTrackerReturn?.returnType ?? 'void',
       });
       hasDeclaredReturn = true;
+    }
+
+    if (TYPES.includes(firstWord)) {
+      const maybeNewVariables = handleVariableDeclaration({
+        allVariables: [...scopeVariables, ...globalVariables],
+        currLine: lineText,
+        currLineNum: lineNumber,
+      });
+      if (!!maybeNewVariables?.length) {
+        scopeVariables.push(...maybeNewVariables);
+      }
+      continue;
     }
   }
 }
@@ -325,9 +341,47 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
  * @param {TVariableTracker} allVariables - already declared variables
  * @param {string} currLine - current line
  * @param {number} currLineNum - current line number
- * @returns TVariableTracker | null
+ * @returns TVariableTracker[] | null
  */
-function handleVariableDeclaration({ allVariables, currLine, currLineNum }) {}
+function handleVariableDeclaration({ allVariables, currLine, currLineNum }) {
+  let currentVariables = [];
+  let constantType = '';
+  let currentWordIdx = -1;
+
+  for (const word of iterateLine(currLine)) {
+    currentWordIdx++;
+    if (currentWordIdx === 0) {
+      constantType = word;
+      continue;
+    }
+    if ([',', ';'].includes(word)) {
+      continue;
+    }
+    if (word === '(') {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: `ERROR: CANNOT DECLARE FUNCTION INSIDE ANOTHER FUNCTION`,
+        isError: true,
+      });
+      return;
+    }
+    if (allVariables.some((variable) => variable.name === word)) {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: variable ${word} already declared`, isError: true });
+      continue;
+    } else {
+      currentVariables.push({
+        name: word,
+        type: constantType,
+      });
+    }
+  }
+
+  if (!!currentVariables?.length) {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: `at least one valid variable declaration`, isError: false });
+    return currentVariables;
+  }
+}
 
 function handlePrintf({ allVariables, currLine, currLineNum }) {
   // Remove as aspas, parênteses e ponto e vírgula para análise
@@ -369,7 +423,7 @@ function handlePrintf({ allVariables, currLine, currLineNum }) {
     // Verifica se o tipo da variável corresponde ao especificador de formato
     // Esta é uma simplificação, pois a correspondência real entre tipos e especificadores é mais complexa
     const specifier = formatSpecifiers[index];
-    if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
+    if ((specifier?.includes('d') || specifier?.includes('i')) && variable.type !== 'int') {
       displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong type specified for ${varName}', isError: true });
       return;
     }

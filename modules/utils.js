@@ -1,3 +1,5 @@
+import { REGEX } from './lexer.contants.js';
+
 /**
  * @param {string} str - a string
  * @returns {string | undefined}
@@ -36,4 +38,17 @@ export function splitOnWhitespace(str) {
   str = removeComment(str);
   if (!str || typeof str !== 'string') return undefined;
   return str.split(/\s+/)?.filter(Boolean);
+}
+
+export function assertTypeOfWord(word) {
+  if (word.startsWith('"') && word.endsWith('"')) return 'string';
+  if (word.startsWith("'") && word.endsWith("'")) return 'string';
+  if (!REGEX.NUMBERIC.test(word)) {
+    return undefined;
+  }
+
+  const maybeNumber = parseFloat(word);
+  if (isNaN(maybeNumber)) return undefined;
+  if (Number.isInteger(maybeNumber)) return 'int';
+  return 'float';
 }

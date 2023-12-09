@@ -21,13 +21,15 @@ void printInput(){
     scanf("%d", &b);
     printf("The sum is: %d %d\n", a,b);
     printf("number inputed is: %d\n", MAX_SIZE);
-    int a = 0;
+    int a;
+    a = 0;
     b = 5.44;
 }
 
 void function2(){
     char phrase = "Hello World";
-    int key = 3;
+    int key;
+    key = 3;
     double division;
     division = key / phrase;
     printf("%s", division);
