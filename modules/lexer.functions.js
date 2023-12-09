@@ -295,6 +295,16 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       continue;
     }
 
+    if (firstWord === 'scanf') {
+      handleScanf({
+        allVariables: [...scopeVariables, ...globalVariables],
+        allFunctions: globalFunctions,
+        currLine: lineText,
+        currLineNum: lineNumber,
+      });
+      continue;
+    }
+
     if (firstWord === 'return') {
       if (hasDeclaredReturn) {
         displayResults({ lineNumber, lineText, result: 'ERROR: Function already has a return statement', isError: true });
@@ -363,76 +373,79 @@ function handlePrintf({ allVariables, currLine, currLineNum }) {
       displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong type specified for ${varName}', isError: true });
       return;
     }
-    // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
+    //! Adicione verificações adicionais para outros tipos e especificadores conforme necessário
   }
 
   displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid printf statement', isError: false });
 }
 
 function handleScanf({ allVariables, currLine, currLineNum }) {
-    // Verifica se a linha atual contém a chamada à função scanf
-    if (currLine.includes("scanf")) {
-        // Remove as aspas, parênteses e ponto e vírgula para análise
-        const formattedLine = currLine.replace(/["();]/g, '');
+  // Verifica se a linha atual contém a chamada à função scanf
+  if (currLine.includes('scanf')) {
+    // Remove as aspas, parênteses e ponto e vírgula para análise
+    const formattedLine = currLine.replace(/["();]/g, '');
 
-        // Separa os argumentos da função scanf
-        const args = formattedLine.split(',').slice(1).map(arg => arg.trim());
+    // Separa os argumentos da função scanf
+    const args = formattedLine
+      .split(',')
+      .slice(1)
+      .map((arg) => arg.trim());
 
-        // Encontra o formato de string especificado
-        const formatString = currLine.match(/"([^"]*)"/);
-        if (!formatString) {
-            displayResults({ 
-                lineNumber: currLineNum, 
-                lineText: currLine, 
-                result: 'ERROR: Formato de string não especificado no scanf', 
-                isError: true 
-            });
-            return;
-        }
-
-        const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA*]/g) || [];
-
-        // Verifica se o número de especificadores de formato corresponde ao número de argumentos
-        if (formatSpecifiers.length !== args.length) {
-            displayResults({ 
-                lineNumber: currLineNum, 
-                lineText: currLine, 
-                result: 'ERROR: Número de especificadores de formato não corresponde ao número de argumentos', 
-                isError: true 
-            });
-            return;
-        }
-
-        // Verifica cada argumento
-        args.forEach((arg, index) => {
-            const variable = allVariables.find(v => v.name === arg);
-
-            if (!variable) {
-                displayResults({ 
-                    lineNumber: currLineNum, 
-                    lineText: currLine, 
-                    result: `ERROR: Variável ${arg} não definida`, 
-                    isError: true 
-                });
-                return;
-            }
-
-            // Verifica se o tipo da variável corresponde ao especificador de formato
-            const specifier = formatSpecifiers[index];
-            if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
-                displayResults({ 
-                    lineNumber: currLineNum, 
-                    lineText: currLine, 
-                    result: `ERROR: Tipo incorreto para especificador de formato ${specifier}. Esperado int`, 
-                    isError: true 
-                });
-                return;
-            }
-            // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
-        });
+    // Encontra o formato de string especificado
+    const formatString = currLine.match(/"([^"]*)"/);
+    if (!formatString) {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: 'ERROR: Formato de string não especificado no scanf',
+        isError: true,
+      });
+      return;
     }
-}
 
+    const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA*]/g) || [];
+
+    // Verifica se o número de especificadores de formato corresponde ao número de argumentos
+    if (formatSpecifiers.length !== args.length) {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: 'ERROR: Número de especificadores de formato não corresponde ao número de argumentos',
+        isError: true,
+      });
+      return;
+    }
+
+    // Verifica cada argumento
+    for (const [arg, index] of args) {
+      const variable = allVariables.find((v) => v.name === arg);
+
+      if (!variable) {
+        displayResults({
+          lineNumber: currLineNum,
+          lineText: currLine,
+          result: `ERROR: Variável ${arg} não definida`,
+          isError: true,
+        });
+        return;
+      }
+
+      // Verifica se o tipo da variável corresponde ao especificador de formato
+      const specifier = formatSpecifiers[index];
+      if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
+        displayResults({
+          lineNumber: currLineNum,
+          lineText: currLine,
+          result: `ERROR: Tipo incorreto para especificador de formato ${specifier}. Esperado int`,
+          isError: true,
+        });
+        return;
+      }
+      //! Adicione verificações adicionais para outros tipos e especificadores conforme necessário
+    }
+  }
+  displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid scanf statement', isError: false });
+}
 
 function handleConstUsage({ generator, allVariables, allFunctions, currLine, currLineNum }) {
   const bracketStack = [];
