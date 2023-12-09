@@ -261,7 +261,7 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
         break;
       }
 
-      if (globalFunctions.includes(word)) {
+      if (globalFunctions.some((gFunctions) => gFunctions.name === word)) {
         displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: function already declared', isError: true });
         break;
       }
@@ -331,6 +331,7 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
         expectedReturnType: functionTrackerReturn?.returnType ?? 'void',
       });
       hasDeclaredReturn = true;
+      continue;
     }
 
     if (TYPES.includes(firstWord)) {
@@ -353,7 +354,16 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       });
       continue;
     }
+
+    if (globalFunctions.some((globalFunction) => globalFunction.functionName === firstWord)) {
+      displayResults({ lineNumber, lineText, result: 'function call', isError: false });
+      continue;
+    }
+
+    displayResults({ lineNumber, lineText, result: `ERROR: unkown constant/function ${firstWord}`, isError: true });
   }
+
+  return functionTrackerReturn;
 }
 
 /**
@@ -642,7 +652,6 @@ function handleReturnDeclaration({ allVariables, currLine, currLineNum, expected
         displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong return type for ${expectedReturnType}`, isError: true });
         return;
       }
-      const maybeNumber = parseFloat(word);
       if (expectedReturnType === 'int' && maybeNumber === 'int') {
         correctReturn = true;
         continue;

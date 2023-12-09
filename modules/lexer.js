@@ -10,7 +10,7 @@ import { handleComments, handleConstDeclaration, handleFunctionDeclaration, hand
 
 /**
  * @typedef {Object} TFunctionTracker
- * @property {string} name - The name of the variable.
+ * @property {string} functionName - The name of the variable.
  * @property {TYPES} type - The type of the return of the function
  * @property {TYPES[number][]} params - The type of the parameters of the function
  */

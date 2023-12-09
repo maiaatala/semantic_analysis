@@ -44,6 +44,7 @@ export function assertTypeOfWord(word) {
   if (word.startsWith('"') && word.endsWith('"')) return 'char';
   if (word.startsWith("'") && word.endsWith("'")) return 'char';
 
+  if (word === 0) return 'int';
   const maybeNumber = parseFloat(word);
   if (isNaN(maybeNumber)) return undefined;
   if (Number.isInteger(maybeNumber)) return 'int';
