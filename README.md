@@ -1,18 +1,15 @@
 # lexical_analysis
+Para conseguir enviar o arquivo sem erro de cors, é necessário instalar uma extensão live-server, de preferência utilize a descrita abaixo:
 
-## Testing
+# Extensão: Live Server
+> Id: ritwickdey.LiveServer
+Description: Launch a development local Server with live reload feature for static & dynamic pages
+Version: 5.7.9
+Publisher: Ritwick Dey
+Link para download: https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer
 
-To run the tests, [install Bun](https://bun.sh/docs/installation)
+# Abrindo no navegador
+Após instalar a extensão basta clicar com o botão direito no index.html e selecionar a opção:
+> "open with live server"
 
-run:
-
-```bash
-bun install
-bun run index.js
-```
-
-This project was created using `bun init` in bun v1.0.0. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
-
-## Set Up server
-
-to open the html and upload file you need a server, such as [live server](https://www.alphr.com/vs-code-open-with-live-server/)
+Após isso, clique em choose file, navegue até a pasta Example deste projeto e faça upload do arquivo de example.c
