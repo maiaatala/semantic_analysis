@@ -1,6 +1,6 @@
 import { displayResults } from '../index.js';
 import { PONCTUATIONS, END_OF_LINE, END_OF_WORD, LOGICAL_OPERATORS, MATH_OPERATORS, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
-import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
+import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace, assertTypeOfWord } from './utils.js';
 
 /**
  * @param {string} lineText - a line content
@@ -334,6 +334,15 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       }
       continue;
     }
+
+    if (allVariables.some((variable) => variable.name === word)) {
+      handleConstUsage({
+        allVariables: [...scopeVariables, ...globalVariables],
+        currLine: lineText,
+        currLineNum: lineNumber,
+        });
+      continue;
+    }
   }
 }
 
@@ -499,10 +508,41 @@ function handleScanf({ allVariables, currLine, currLineNum }) {
     }
 }
 
-
 function handleConstUsage({ allVariables, currLine, currLineNum }) {
-  const bracketStack = [];
-  /** @type {TVariableTracker[]} */
+    // Expressão regular para identificar atribuições
+    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/;
+
+    // Verifica se a linha atual contém uma atribuição
+    const match = currLine.match(assignmentRegex);
+    if (match) {
+        const varName = match[1];
+        const value = match[2].trim();
+
+        // Encontra a variável no array de todas as variáveis
+        const variable = allVariables.find(v => v.name === varName);
+        if (!variable) {
+            displayResults({ 
+                lineNumber: currLineNum, 
+                lineText: currLine, 
+                result: `ERROR: Variável ${varName} não definida`, 
+                isError: true 
+            });
+            return;
+        }
+
+        // Utiliza a função assertTypeOfWord para determinar o tipo do valor
+        const valueType = assertTypeOfWord(value);
+
+        // Verifica se o tipo do valor é compatível com o tipo da variável
+        if (valueType !== variable.type) {
+            displayResults({ 
+                lineNumber: currLineNum, 
+                lineText: currLine, 
+                result: `ERROR: Tipo do valor atribuído à variável ${varName} (${valueType}) não corresponde ao seu tipo declarado (${variable.type})`, 
+                isError: true 
+            });
+        }
+    }
 }
 
 function handleReturnDeclaration({ allVariables, currLine, currLineNum, expectedReturnType }) {
