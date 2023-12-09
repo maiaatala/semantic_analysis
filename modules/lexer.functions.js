@@ -1,5 +1,5 @@
 import { displayResults } from '../index.js';
-import { REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
+import { END_OF_LINE, END_OF_WORD, LOGICAL_OPERATORS, MATH_OPERATORS, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
 import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
 
 /**
@@ -12,6 +12,15 @@ export function* iterateLine(iterable) {
 
   for (const character of iterable) {
     i++;
+    if (character === '/' && (iterable[i + 1] === '/' || iterable[i + 1] === '*')) {
+      if (currentWord !== '') {
+        yield currentWord; // return if there's something before the comment
+      }
+      // line is a comment, return it all
+      yield iterable.slice(i);
+      break;
+    }
+
     if (
       END_OF_LINE.includes(character) ||
       END_OF_WORD.includes(character) ||
@@ -22,15 +31,7 @@ export function* iterateLine(iterable) {
       yield currentWord;
       currentWord = '';
     }
-
-    if (character === '/' && (iterable[i + 1] === '/' || iterable[i + 1] === '*')) {
-      if (currentWord !== '') {
-        yield currentWord; // return if there's something before the comment
-      }
-      // line is a comment, return it all
-      yield iterable.slice(i);
-      break;
-    }
+    if (END_OF_WORD.includes(character)) continue; //saving string with blank space error
     currentWord = currentWord + character;
   }
 
@@ -145,13 +146,13 @@ export function handleConstDeclaration({ allVariables, currLine, currLineNum }) 
  * @returns TFunctionTracker
  */
 export function handleFunctionDeclaration({ generator, globalVariables, globalFunctions, currLine, currLineNum }) {
-  const bracketStack = [];
+  let bracketStack = [];
   /** @type {TVariableTracker[]} */
-  const scopeVariables = [];
+  let scopeVariables = [];
   let hasAtLeastOneParenthesis = false;
   let correctReturnUsage = false;
   let hasDeclaredReturn = false;
-  const functionTrackerReturn = {
+  let functionTrackerReturn = {
     returnType: '',
     functionName: '',
     params: [],
@@ -222,7 +223,6 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     if (word === '{') {
       if (!functionTrackerReturn.functionName || !hasAtLeastOneParenthesis) {
         displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: function declaration ended too early', isError: true });
-        break;
       }
       //function declaration ended correctly
       bracketStack.push('{');
@@ -235,7 +235,7 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
         break;
       }
 
-      if (allFunctions.includes(word)) {
+      if (globalFunctions.includes(word)) {
         displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: function already declared', isError: true });
         break;
       }
@@ -248,11 +248,20 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     //something went very wrong in the function declaration
     functionTrackerReturn = null;
     bracketStack = ['{']; //force interation until the end of the function
+  } else {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid function declaration', isError: false });
   }
 
-  while (bracketStack.length) {
-    const { lineText, lineNumber } = generator.next().value;
-    const firstWord = iterateLine(lineText).next().value;
+  for (const { lineText, lineNumber } of generator) {
+    console.log('lineText', lineText);
+    if (bracketStack.length === 0) {
+      //end of function block
+      break;
+    }
+    if (!lineText) {
+      continue;
+    }
+    const firstWord = iterateLine(lineText).next();
     if (firstWord === '}') {
       bracketStack.pop();
       if (!hasDeclaredReturn && functionTrackerReturn.returnType !== 'void') {
@@ -270,6 +279,14 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     }
   }
 }
+
+/**
+ * @param {TVariableTracker} allVariables - already declared variables
+ * @param {string} currLine - current line
+ * @param {number} currLineNum - current line number
+ * @returns TVariableTracker | null
+ */
+function handleVariableDeclaration({ allVariables, currLine, currLineNum }) {}
 
 function handlePrintf({ generator, allVariables, allFunctions, currLine, currLineNum }) {
   const bracketStack = [];

@@ -8,7 +8,7 @@
 Ascii 96 : a
 Ascii 122 : z
 Ascii 65 : A
-Ascii 90 : Z */
+Ascii 90 : Z */ asdasd
 
 int sum(int a, int b){
     return a + b;
@@ -41,7 +41,7 @@ int main(){
     function2(); //function of the program
 
     credits ();
-    return  (0);
+    return 0;
 }
 
 int wrongReturn(){

@@ -1,6 +1,6 @@
 import { displayResults } from '../index.js';
-import { END_OF_LINE, END_OF_WORD, IF_STATE, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
-import { handleComments, handleConstDeclaration, handleImportDeclaration, iterateLine } from './lexer.functions.js';
+import { TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
+import { handleComments, handleConstDeclaration, handleFunctionDeclaration, handleImportDeclaration, iterateLine } from './lexer.functions.js';
 
 /**
  * @typedef {Object} TVariableTracker
@@ -72,8 +72,16 @@ export function analyzeSemantics(fileContent) {
       continue;
     }
     if ([...TYPES, ...TYPE_VARIATIONS].includes(firstWord)) {
-      displayResults({ lineNumber, lineText, result: 'function/declaration', isError: false });
-      //handleConstDeclaration({ allImports: declaredImports });
+      const maybeNewFunction = handleFunctionDeclaration({
+        generator: lineGenerator,
+        globalFunctions: declaredFunctions,
+        globalVariables,
+        currLine: lineText,
+        currLineNum: lineNumber,
+      });
+      if (maybeNewFunction) {
+        declaredFunctions.push(maybeNewFunction);
+      }
       continue;
     }
 
