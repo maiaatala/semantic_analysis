@@ -10,6 +10,8 @@ Link para download: https://marketplace.visualstudio.com/items?itemName=ritwickd
 
 # Abrindo no navegador
 Após instalar a extensão basta clicar com o botão direito no index.html e selecionar a opção:
-> "open with live server"
+> open with live server
 
-Após isso, clique em choose file, navegue até a pasta Example deste projeto e faça upload do arquivo de example.c
+Após isso, clique em choose file, navegue até a pasta Example deste projeto e faça upload do arquivo example.c
+
+OBS: o arquivo de exemplo contém erros propositais apenas para demonstração do funcionamento.
