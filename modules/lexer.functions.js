@@ -151,6 +151,7 @@ export function handleConstDeclaration({ allVariables, currLine, currLineNum }) 
 export function handleFunctionDeclaration({ generator, globalVariables, globalFunctions, currLine, currLineNum }) {
   let bracketStack = [];
   /** @type {TVariableTracker[]} */
+  //!FUNCTION SCOPE VARIABLE SHOULD HAVE THE VARIBLES DECLARED IN THE PARAMETERS
   let scopeVariables = [];
   let hasAtLeastOneParenthesis = false;
   let correctReturnUsage = false;
@@ -295,7 +296,16 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     }
 
     if (firstWord === 'return') {
-      //analyze return
+      if (hasDeclaredReturn) {
+        displayResults({ lineNumber, lineText, result: 'ERROR: Function already has a return statement', isError: true });
+        continue;
+      }
+      handleReturnDeclaration({
+        allVariables: [...scopeVariables, ...globalVariables],
+        currLine: lineText,
+        currLineNum: lineNumber,
+        expectedReturnType: functionTrackerReturn.returnType,
+      });
       hasDeclaredReturn = true;
     }
   }
@@ -429,18 +439,89 @@ function handleConstUsage({ generator, allVariables, allFunctions, currLine, cur
   /** @type {TVariableTracker[]} */
 }
 
-function handleReturnDeclaration({ allVariabes, allFunctions, currLine, currLineNum, expectedReturnType }) {
+function handleReturnDeclaration({ allVariables, currLine, currLineNum, expectedReturnType }) {
   /** @type {TVariableTracker[]} */
   let returnLineIdx = -1;
-  let correctRetunr = false;
-  for (const word of iterateLine(lineText)) {
+  let correctReturn = false;
+  for (const word of iterateLine(currLine)) {
     returnLineIdx++;
     if (returnLineIdx === 0) {
-      if (word !== 'return') {
-        displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: Wrong return line', isError: true });
-        break;
-      }
       continue;
     }
+    if (word.startsWith('"') || word.startsWith("'")) {
+      if (expectedReturnType !== 'char') {
+        displayResults({
+          lineNumber: currLineNum,
+          lineText: currLine,
+          result: 'ERROR: wrong return statement for declared function type',
+          isError: true,
+        });
+      } else {
+        displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid return statement', isError: false });
+      }
+      return;
+    }
+    if (word && expectedReturnType === 'void') {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: 'ERROR: function should return nothing',
+        isError: true,
+      });
+      return;
+    }
+
+    if (REGEX.NUMBERIC.test(word)) {
+      if (!['int', 'double', 'float'].includes(expectedReturnType)) {
+        displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong return type for ${expectedReturnType}`, isError: true });
+        return;
+      }
+      const maybeNumber = parseFloat(word);
+      if (expectedReturnType === 'int' && Number.isInteger(maybeNumber)) {
+        correctReturn = true;
+        continue;
+      } else if (['double', 'float'].includes(expectedReturnType) && !Number.isNaN(maybeNumber)) {
+        correctReturn = true;
+        continue;
+      }
+    }
+
+    if ([...MATH_OPERATORS, ...LOGICAL_OPERATORS].includes(word)) {
+      if (!['int', 'double', 'float'].includes(expectedReturnType)) {
+        correctReturn = false;
+      } else {
+        displayResults({
+          lineNumber: currLineNum,
+          lineText: currLine,
+          result: `ERROR: return type ${expectedReturnType} should not have math operations`,
+          isError: true,
+        });
+      }
+    }
+
+    const variable = allVariables.find((v) => v.name === word);
+    if (variable) {
+      if (variable.type === expectedReturnType) {
+        correctReturn = true;
+        continue;
+      } else {
+        displayResults({
+          lineNumber: currLineNum,
+          lineText: currLine,
+          result: `ERROR: varible is not of the type ${expectedReturnType}`,
+          isError: true,
+        });
+        return;
+      }
+    } else {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: variable ${word} not declared`, isError: true });
+      return;
+    }
   }
+
+  if (correctReturn) {
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid return statement', isError: false });
+    return;
+  }
+  displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong return statement syntax', isError: true });
 }
