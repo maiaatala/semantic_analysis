@@ -164,28 +164,6 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
   //first line is the function declaration
   for (const word of iterateLine(currLine)) {
     console.log('word', word);
-    if (TYPE_VARIATIONS.includes(word)) {
-      continue;
-    }
-    if (!functionTrackerReturn.returnType && TYPES.includes(word)) {
-      functionTrackerReturn.returnType = word;
-      continue;
-    }
-
-    if (word === '(') {
-      hasAtLeastOneParenthesis = true;
-      bracketStack.push('(');
-      continue;
-    }
-
-    if (word === ')') {
-      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: parameter parenthesis did not open', isError: true });
-      break;
-    }
-    if (word === ',') {
-      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: comma outisde ()', isError: true });
-      break;
-    }
 
     if (bracketStack.length === 1) {
       //we are in the params declaration
@@ -217,11 +195,40 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       if (!word) {
         continue;
       }
-      //check if expecting parameter name?
+
       if (!REGEX.ALPHABETIC_THEN_ALPHANUMERIC.test(word)) {
         displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: invalid param name', isError: true });
         break;
       }
+    }
+
+    if (TYPE_VARIATIONS.includes(word)) {
+      continue;
+    }
+    if (!functionTrackerReturn.returnType && TYPES.includes(word)) {
+      functionTrackerReturn.returnType = word;
+      continue;
+    }
+
+    if (word === '(') {
+      hasAtLeastOneParenthesis = true;
+      bracketStack.push('(');
+      continue;
+    }
+
+    if (word === ')') {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: 'ERROR: parameter parenthesis did not open or too many )',
+        isError: true,
+      });
+      break;
+    }
+
+    if (word === ',') {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: comma outisde ()', isError: true });
+      break;
     }
 
     if (word === '{') {
@@ -247,9 +254,8 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       continue;
     }
   }
-  console.log('bracketStack', bracketStack);
+
   if (bracketStack[0] === '{') {
-    console.log('hi');
     displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid function declaration', isError: false });
   } else {
     //something went very wrong in the function declaration
@@ -257,27 +263,31 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     bracketStack = ['{']; //force interation until the end of the function
   }
 
-  for (const { lineText, lineNumber } of generator) {
-    // console.log('lineText', lineText);
+  while (true) {
+    const { lineText, lineNumber } = generator.next().value;
+    const firstWord = iterateLine(lineText).next().value;
+
     if (bracketStack.length === 0) {
-      //end of function block
-      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid end of function', isError: false });
       return functionTrackerReturn;
     }
-    const firstWord = iterateLine(lineText).next();
+
     if (firstWord === '}') {
       bracketStack.pop();
       if (!hasDeclaredReturn && functionTrackerReturn.returnType !== 'void') {
-        displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: Function ended without return statement', isError: true });
+        displayResults({ lineNumber, lineText, result: 'ERROR: Function ended without return statement', isError: true });
+      } else {
+        displayResults({ lineNumber, lineText, result: 'valid end of function', isError: false });
+        return functionTrackerReturn;
       }
-      continue;
+      return;
     }
     if (firstWord === '{') {
-      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: Wrong block inside a function', isError: true });
+      displayResults({ lineNumber, lineText, result: 'ERROR: Wrong block inside a function', isError: true });
       continue;
     }
 
-    if (lineText.startsWith('return')) {
+    if (firstWord === 'return') {
+      //analyze return
       hasDeclaredReturn = true;
     }
   }
@@ -291,10 +301,53 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
  */
 function handleVariableDeclaration({ allVariables, currLine, currLineNum }) {}
 
-function handlePrintf({ generator, allVariables, allFunctions, currLine, currLineNum }) {
+function handlePrintf({ allVariables, allFunctions, currLine, currLineNum }) {
   const bracketStack = [];
   /** @type {TVariableTracker[]} */
   const scopeVariables = [];
+
+  // Verifica se a linha atual contém a chamada à função printf
+  if (currLine.includes('printf')) {
+    // Remove as aspas, parênteses e ponto e vírgula para análise
+    const formattedLine = currLine.replace(/["();]/g, '');
+
+    // Separa os argumentos da função printf
+    const args = formattedLine
+      .split(',')
+      .slice(1)
+      .map((arg) => arg.trim());
+
+    // Encontra o formato de string especificado
+    const formatString = currLine.match(/"([^"]*)"/);
+    if (!formatString) {
+      throw new Error(`Erro na linha ${currLineNum}: Formato de string não especificado no printf.`);
+    }
+
+    const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA]/g) || [];
+
+    // Verifica se o número de especificadores de formato corresponde ao número de argumentos
+    if (formatSpecifiers.length !== args.length) {
+      throw new Error(`Erro na linha ${currLineNum}: Número de especificadores de formato não corresponde ao número de argumentos.`);
+    }
+
+    // Verifica cada argumento
+    args.forEach((arg, index) => {
+      const varName = arg.split('.')[0]; // Considera chamadas de propriedades/métodos
+      const variable = allVariables.find((v) => v.name === varName);
+
+      if (!variable) {
+        throw new Error(`Erro na linha ${currLineNum}: Variável ${varName} não definida.`);
+      }
+
+      // Verifica se o tipo da variável corresponde ao especificador de formato
+      // Esta é uma simplificação, pois a correspondência real entre tipos e especificadores é mais complexa
+      const specifier = formatSpecifiers[index];
+      if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
+        throw new Error(`Erro na linha ${currLineNum}: Tipo incorreto para especificador de formato ${specifier}. Esperado int.`);
+      }
+      // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
+    });
+  }
 }
 
 function handleScanf({ generator, allVariables, allFunctions, currLine, currLineNum }) {
