@@ -1,8 +1,9 @@
 import { displayResults } from '../index.js';
 import { PONCTUATIONS, END_OF_LINE, END_OF_WORD, LOGICAL_OPERATORS, MATH_OPERATORS, REGEX, TYPES, TYPE_VARIATIONS } from './lexer.contants.js';
-import { removeWhiteSpace, separateStringByCharacters, splitOnWhitespace, assertTypeOfWord } from './utils.js';
+import { assertTypeOfWord, removeWhiteSpace, separateStringByCharacters, splitOnWhitespace } from './utils.js';
 
 /**
+ * @description this generator is used to break a line into words
  * @param {string} lineText - a line content
  * @returns {Generator<string>}
  */
@@ -152,7 +153,7 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
   let bracketStack = [];
   /** @type {TVariableTracker[]} */
   //!FUNCTION SCOPE VARIABLE SHOULD HAVE THE VARIBLES DECLARED IN THE PARAMETERS
-  let scopeVariables = [];
+  let scopeVariables = globalVariables || [];
   let hasAtLeastOneParenthesis = false;
   let hasDeclaredReturn = false;
   let functionTrackerReturn = {
@@ -161,9 +162,14 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
     params: [],
   };
 
+  let tempScopeVariable = null;
+
   //first line is the function declaration
   for (const word of iterateLine(currLine)) {
     if (bracketStack.length === 1) {
+      if (!word) {
+        continue;
+      }
       //we are in the params declaration
       if (word === ',') {
         continue;
@@ -186,11 +192,13 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
         continue;
       }
       if (TYPES.includes(word)) {
-        functionTrackerReturn.params.push(word);
-        continue;
-      }
-
-      if (!word) {
+        if (tempScopeVariable?.type) {
+          displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: missing param name in declaration', isError: true });
+          break;
+        }
+        tempScopeVariable = {
+          type: word,
+        };
         continue;
       }
 
@@ -198,6 +206,16 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
         displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: invalid param name', isError: true });
         break;
       }
+
+      if (!tempScopeVariable?.type) {
+        displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: param name without param type', isError: true });
+        break;
+      }
+      tempScopeVariable.name = word;
+      functionTrackerReturn.params.push(tempScopeVariable.type);
+      scopeVariables.push(tempScopeVariable);
+      tempScopeVariable = null;
+      continue;
     }
 
     if (TYPE_VARIATIONS.includes(word)) {
@@ -330,12 +348,12 @@ export function handleFunctionDeclaration({ generator, globalVariables, globalFu
       continue;
     }
 
-    if (allVariables.some((variable) => variable.name === word)) {
+    if (scopeVariables.some((variable) => variable.name === firstWord)) {
       handleConstUsage({
-        allVariables: [...scopeVariables, ...globalVariables],
+        allVariables: scopeVariables,
         currLine: lineText,
         currLineNum: lineNumber,
-        });
+      });
       continue;
     }
   }
@@ -528,40 +546,40 @@ function handleScanf({ allVariables, currLine, currLineNum }) {
 }
 
 function handleConstUsage({ allVariables, currLine, currLineNum }) {
-    // Expressão regular para identificar atribuições
-    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/;
+  // Expressão regular para identificar atribuições
+  const assignmentRegex = /(\w+)\s*=\s*([^;]+);/;
 
-    // Verifica se a linha atual contém uma atribuição
-    const match = currLine.match(assignmentRegex);
-    if (match) {
-        const varName = match[1];
-        const value = match[2].trim();
+  // Verifica se a linha atual contém uma atribuição
+  const match = currLine.match(assignmentRegex);
+  if (match) {
+    const varName = match[1];
+    const value = match[2].trim();
 
-        // Encontra a variável no array de todas as variáveis
-        const variable = allVariables.find(v => v.name === varName);
-        if (!variable) {
-            displayResults({ 
-                lineNumber: currLineNum, 
-                lineText: currLine, 
-                result: `ERROR: Variável ${varName} não definida`, 
-                isError: true 
-            });
-            return;
-        }
-
-        // Utiliza a função assertTypeOfWord para determinar o tipo do valor
-        const valueType = assertTypeOfWord(value);
-
-        // Verifica se o tipo do valor é compatível com o tipo da variável
-        if (valueType !== variable.type) {
-            displayResults({ 
-                lineNumber: currLineNum, 
-                lineText: currLine, 
-                result: `ERROR: Tipo do valor atribuído à variável ${varName} (${valueType}) não corresponde ao seu tipo declarado (${variable.type})`, 
-                isError: true 
-            });
-        }
+    // Encontra a variável no array de todas as variáveis
+    const variable = allVariables.find((v) => v.name === varName);
+    if (!variable) {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: `ERROR: Variável ${varName} não definida`,
+        isError: true,
+      });
+      return;
     }
+
+    // Utiliza a função assertTypeOfWord para determinar o tipo do valor
+    const valueType = assertTypeOfWord(value);
+
+    // Verifica se o tipo do valor é compatível com o tipo da variável
+    if (valueType !== variable.type) {
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: `ERROR: Tipo do valor atribuído à variável ${varName} (${valueType}) não corresponde ao seu tipo declarado (${variable.type})`,
+        isError: true,
+      });
+    }
+  }
 }
 
 function handleReturnDeclaration({ allVariables, currLine, currLineNum, expectedReturnType }) {
@@ -612,16 +630,18 @@ function handleReturnDeclaration({ allVariables, currLine, currLineNum, expected
     }
 
     if ([...MATH_OPERATORS, ...LOGICAL_OPERATORS].includes(word)) {
-      if (!['int', 'double', 'float'].includes(expectedReturnType)) {
+      if (['int', 'double', 'float'].includes(expectedReturnType)) {
         correctReturn = false;
-      } else {
-        displayResults({
-          lineNumber: currLineNum,
-          lineText: currLine,
-          result: `ERROR: return type ${expectedReturnType} should not have math operations`,
-          isError: true,
-        });
+        continue;
       }
+
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: `ERROR: return type ${expectedReturnType} should not have math operations`,
+        isError: true,
+      });
+      break;
     }
 
     const variable = allVariables.find((v) => v.name === word);
