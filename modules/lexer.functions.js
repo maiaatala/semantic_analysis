@@ -152,7 +152,6 @@ export function handleConstDeclaration({ allVariables, currLine, currLineNum }) 
 export function handleFunctionDeclaration({ generator, globalVariables, globalFunctions, currLine, currLineNum }) {
   let bracketStack = [];
   /** @type {TVariableTracker[]} */
-  //!FUNCTION SCOPE VARIABLE SHOULD HAVE THE VARIBLES DECLARED IN THE PARAMETERS
   let scopeVariables = globalVariables || [];
   let hasAtLeastOneParenthesis = false;
   let hasDeclaredReturn = false;
@@ -433,47 +432,46 @@ function handlePrintf({ allVariables, currLine, currLineNum }) {
 
   // Separa os argumentos da função printf
   const args = formattedLine
-      .split(',')
-      .slice(1)
-      .map(arg => arg.trim());
+    .split(',')
+    .slice(1)
+    .map((arg) => arg.trim());
 
   // Encontra o formato de string especificado
   const formatString = currLine.match(/"([^"]*)"/);
   if (!formatString) {
-      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong printf format', isError: true });
-      return;
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong printf format', isError: true });
+    return;
   }
 
   const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA]/g) || [];
 
   // Verifica se o número de especificadores de formato corresponde ao número de argumentos
   if (formatSpecifiers.length !== args.length) {
-      displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: too many or too little arguments', isError: true });
-      return;
+    displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: too many or too little arguments', isError: true });
+    return;
   }
 
   // Verifica cada argumento
   args.forEach((arg, index) => {
-      const varName = arg.split('.')[0]; // Considera chamadas de propriedades/métodos
-      const variable = allVariables.find(v => v.name === varName);
+    const varName = arg.split('.')[0]; // Considera chamadas de propriedades/métodos
+    const variable = allVariables.find((v) => v.name === varName);
 
-      if (!variable) {
-          displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: variable ${varName} is not defined`, isError: true });
-          return;
-      }
+    if (!variable) {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: variable ${varName} is not defined`, isError: true });
+      return;
+    }
 
-      // Verifica se o tipo da variável corresponde ao especificador de formato
-      const specifier = formatSpecifiers[index];
-      if ((specifier?.includes('d') || specifier?.includes('i')) && variable.type !== 'int') {
-          displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong type specified for ${varName}`, isError: true });
-          return;
-      }
-      // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
+    // Verifica se o tipo da variável corresponde ao especificador de formato
+    const specifier = formatSpecifiers[index];
+    if ((specifier?.includes('d') || specifier?.includes('i')) && variable.type !== 'int') {
+      displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong type specified for ${varName}`, isError: true });
+      return;
+    }
+    // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
   });
 
   displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid printf statement', isError: false });
 }
-
 
 function handleScanf({ allVariables, currLine, currLineNum }) {
   // Verifica se a linha atual contém a chamada à função scanf
@@ -552,6 +550,7 @@ function handleConstUsage({ allVariables, currLine, currLineNum }) {
   if (match) {
     const varName = match[1];
     const value = match[2].trim();
+    console.log('VALUE IN ERROR', value);
 
     // Encontra a variável no array de todas as variáveis
     const variable = allVariables.find((v) => v.name === varName);
@@ -612,23 +611,17 @@ function handleReturnDeclaration({ allVariables, currLine, currLineNum, expected
       return;
     }
 
-    if (REGEX.NUMBERIC.test(word)) {
-      if (!['int', 'double', 'float'].includes(expectedReturnType)) {
-        displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong return type for ${expectedReturnType}`, isError: true });
-        return;
-      }
-      const maybeNumber = parseFloat(word);
-      if (expectedReturnType === 'int' && Number.isInteger(maybeNumber)) {
-        correctReturn = true;
-        continue;
-      } else if (['double', 'float'].includes(expectedReturnType) && !Number.isNaN(maybeNumber)) {
-        correctReturn = true;
-        continue;
-      }
-    }
-
     if ([...MATH_OPERATORS, ...LOGICAL_OPERATORS].includes(word)) {
       if (['int', 'double', 'float'].includes(expectedReturnType)) {
+        if (word === '/' && expectedReturnType === 'int') {
+          displayResults({
+            lineNumber: currLineNum,
+            lineText: currLine,
+            result: `ERROR: return type ${expectedReturnType} should not have division`,
+            isError: true,
+          });
+          break;
+        }
         correctReturn = false;
         continue;
       }
@@ -640,6 +633,31 @@ function handleReturnDeclaration({ allVariables, currLine, currLineNum, expected
         isError: true,
       });
       break;
+    }
+
+    const maybeNumber = assertTypeOfWord(word);
+
+    if (['int', 'float'].includes(maybeNumber)) {
+      if (!['int', 'double', 'float'].includes(expectedReturnType)) {
+        displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong return type for ${expectedReturnType}`, isError: true });
+        return;
+      }
+      const maybeNumber = parseFloat(word);
+      if (expectedReturnType === 'int' && maybeNumber === 'int') {
+        correctReturn = true;
+        continue;
+      }
+      if (['double', 'float'].includes(expectedReturnType) && maybeNumber === 'float') {
+        correctReturn = true;
+        continue;
+      }
+      displayResults({
+        lineNumber: currLineNum,
+        lineText: currLine,
+        result: `ERROR: wrong number ${word} for return type ${expectedReturnType}`,
+        isError: true,
+      });
+      return;
     }
 
     const variable = allVariables.find((v) => v.name === word);
@@ -670,5 +688,5 @@ function handleReturnDeclaration({ allVariables, currLine, currLineNum, expected
     displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid void return statement', isError: false });
     return;
   }
-  displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'ERROR: wrong return statement syntax', isError: true });
+  displayResults({ lineNumber: currLineNum, lineText: currLine, result: `ERROR: wrong return statement for ${expectedReturnType}`, isError: true });
 }

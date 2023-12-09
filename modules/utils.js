@@ -43,9 +43,6 @@ export function splitOnWhitespace(str) {
 export function assertTypeOfWord(word) {
   if (word.startsWith('"') && word.endsWith('"')) return 'char';
   if (word.startsWith("'") && word.endsWith("'")) return 'char';
-  if (!REGEX.NUMBERIC.test(word)) {
-    return undefined;
-  }
 
   const maybeNumber = parseFloat(word);
   if (isNaN(maybeNumber)) return undefined;
