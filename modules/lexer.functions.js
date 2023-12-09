@@ -359,11 +359,70 @@ function handlePrintf({ allVariables, currLine, currLineNum }) {
   displayResults({ lineNumber: currLineNum, lineText: currLine, result: 'valid printf statement', isError: false });
 }
 
-function handleScanf({ generator, allVariables, allFunctions, currLine, currLineNum }) {
-  const bracketStack = [];
-  /** @type {TVariableTracker[]} */
-  const scopeVariables = [];
+function handleScanf({ allVariables, currLine, currLineNum }) {
+    // Verifica se a linha atual contém a chamada à função scanf
+    if (currLine.includes("scanf")) {
+        // Remove as aspas, parênteses e ponto e vírgula para análise
+        const formattedLine = currLine.replace(/["();]/g, '');
+
+        // Separa os argumentos da função scanf
+        const args = formattedLine.split(',').slice(1).map(arg => arg.trim());
+
+        // Encontra o formato de string especificado
+        const formatString = currLine.match(/"([^"]*)"/);
+        if (!formatString) {
+            displayResults({ 
+                lineNumber: currLineNum, 
+                lineText: currLine, 
+                result: 'ERROR: Formato de string não especificado no scanf', 
+                isError: true 
+            });
+            return;
+        }
+
+        const formatSpecifiers = formatString[1].match(/%[diufFeEgGxXoscpaA*]/g) || [];
+
+        // Verifica se o número de especificadores de formato corresponde ao número de argumentos
+        if (formatSpecifiers.length !== args.length) {
+            displayResults({ 
+                lineNumber: currLineNum, 
+                lineText: currLine, 
+                result: 'ERROR: Número de especificadores de formato não corresponde ao número de argumentos', 
+                isError: true 
+            });
+            return;
+        }
+
+        // Verifica cada argumento
+        args.forEach((arg, index) => {
+            const variable = allVariables.find(v => v.name === arg);
+
+            if (!variable) {
+                displayResults({ 
+                    lineNumber: currLineNum, 
+                    lineText: currLine, 
+                    result: `ERROR: Variável ${arg} não definida`, 
+                    isError: true 
+                });
+                return;
+            }
+
+            // Verifica se o tipo da variável corresponde ao especificador de formato
+            const specifier = formatSpecifiers[index];
+            if ((specifier.includes('d') || specifier.includes('i')) && variable.type !== 'int') {
+                displayResults({ 
+                    lineNumber: currLineNum, 
+                    lineText: currLine, 
+                    result: `ERROR: Tipo incorreto para especificador de formato ${specifier}. Esperado int`, 
+                    isError: true 
+                });
+                return;
+            }
+            // Adicione verificações adicionais para outros tipos e especificadores conforme necessário
+        });
+    }
 }
+
 
 function handleConstUsage({ generator, allVariables, allFunctions, currLine, currLineNum }) {
   const bracketStack = [];
