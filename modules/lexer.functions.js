@@ -438,8 +438,6 @@ function handlePrintf({ allVariables, currLine, currLineNum }) {
   // Remove as aspas, parênteses e ponto e vírgula para análise
   const formattedLine = currLine.replace(/["();]/g, '');
 
-  console.log('allVariables', allVariables);
-
   // Separa os argumentos da função printf
   const args = formattedLine
     .split(',')
@@ -560,7 +558,6 @@ function handleConstUsage({ allVariables, currLine, currLineNum }) {
   if (match) {
     const varName = match[1];
     const value = match[2].trim();
-    console.log('VALUE IN ERROR', value);
 
     // Encontra a variável no array de todas as variáveis
     const variable = allVariables.find((v) => v.name === varName);
